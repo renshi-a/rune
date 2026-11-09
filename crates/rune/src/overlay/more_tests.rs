@@ -551,7 +551,7 @@ fn overlay_compositor_observes_prewarm_and_each_rendered_frame() {
         let renderer = &mut overlay.renderer.as_mut().unwrap();
         let mut enc = gpu.device.create_command_encoder(&Default::default());
         let animating = render_frame(&mut Frame {
-            device: &gpu.device, queue: &gpu.queue, encoder: &mut enc, target: &target.view,
+            device: &gpu.device, queue: &gpu.queue, adapter: &gpu.adapter, encoder: &mut enc, target: &target.view,
             format: OFFSCREEN_FORMAT, size: (32, 16), dt: 1.0 / 60.0, update_ms: 0.0,
             rt: &mut overlay.rt, ui: renderer,
         }, &mut overlay.compositor);

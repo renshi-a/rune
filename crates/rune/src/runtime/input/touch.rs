@@ -9,6 +9,8 @@ use super::*;
 const TOUCH_SLOP: f32 = 8.0;
 /// A finger held this long (seconds) before lifting throws nothing.
 const FLING_HOLD: f64 = 0.1;
+/// Seconds of recent motion the release velocity averages over.
+const VELOCITY_WINDOW: f32 = 0.03;
 /// The touch id a mouse presses with under `App::pointer_pans`.
 const MOUSE_FINGER: u64 = u64::MAX;
 
@@ -92,7 +94,14 @@ impl<S: 'static> Runtime<S> {
         let f = self.touch.finger.as_mut().unwrap();
         let along = if f.horizontal { dx } else { dy };
         let dt = time - f.at;
-        if dt > 0.0 { f.velocity = (along - f.last) / dt as f32; }
+        if dt > 0.0 {
+            // The release velocity is the recent motion smoothed, as UIKit's pan recognizer
+            // reports it: one jittery or still mouse event just before lifting neither throws
+            // the content wildly nor stops it dead.
+            let instant = (along - f.last) / dt as f32;
+            let blend = 1.0 - (-(dt as f32) / VELOCITY_WINDOW).exp();
+            f.velocity = if f.last == 0.0 && f.velocity == 0.0 { instant } else { f.velocity + (instant - f.velocity) * blend };
+        }
         (f.last, f.at) = (along, time);
         match (f.mode, f.scroll) {
             (Mode::Pan, Some(scroll)) => self.touch_scroll_move(scroll, along),
