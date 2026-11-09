@@ -85,6 +85,7 @@ pub struct App<S: 'static> {
     pub(crate) maximized: bool,
     pub(crate) modifier_keys: bool,
     pub(crate) tab_visits_controls: bool,
+    pub(crate) pointer_pans: bool,
     pub(crate) srgb_blend: bool,
     pub(crate) font_smoothing: crate::FontSmoothing,
     pub(crate) dev_stats: Option<fn() -> String>,
@@ -135,6 +136,7 @@ impl<S: 'static> App<S> {
             maximized: false,
             modifier_keys: false,
             tab_visits_controls: false,
+            pointer_pans: false,
             srgb_blend: true,
             font_smoothing: crate::FontSmoothing::default(),
             dev_stats: None,
@@ -228,6 +230,15 @@ impl<S: 'static> App<S> {
     /// navigation off it visits only text fields and lists.
     pub fn tab_visits_controls(mut self, on: bool) -> Self {
         self.tab_visits_controls = on;
+        self
+    }
+
+    /// The mouse's primary button acts as a finger, as on a touchscreen: a drag over a scroll
+    /// viewport pans it (and flings it on release), a drag on an element that drags still
+    /// drags it, and a tap still presses. For apps written in a touch idiom, where lists are
+    /// swiped rather than wheeled. Hover is kept, unlike a lifted finger.
+    pub fn pointer_pans(mut self) -> Self {
+        self.pointer_pans = true;
         self
     }
 

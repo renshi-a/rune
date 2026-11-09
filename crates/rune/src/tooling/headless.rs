@@ -98,7 +98,7 @@ pub(crate) fn headless_configured<S: 'static>(mut app: crate::app::App<S>, args:
     });
     let fit_height = app.fit_content_height;
     let app_options = app.window_options.clone();
-    let (modifier_keys, tab_visits_controls, playground) = (app.modifier_keys, app.tab_visits_controls, app.playground.take());
+    let (modifier_keys, tab_visits_controls, pointer_pans, playground) = (app.modifier_keys, app.tab_visits_controls, app.pointer_pans, app.playground.take());
     let (spec, state, shared) = app.into_parts(args.scene.as_deref());
     let shortcuts = crate::shortcuts::Guard::attach(&shared, std::sync::Arc::new(|| {}), true, false);
     let mut menus = crate::native_menu::Guard::attach(&shared, true);
@@ -116,6 +116,7 @@ pub(crate) fn headless_configured<S: 'static>(mut app: crate::app::App<S>, args:
     rt.set_font_smoothing(font_smoothing);
     rt.set_modifier_keys(modifier_keys);
     rt.set_tab_visits_controls(tab_visits_controls);
+    rt.set_pointer_pans(pointer_pans);
     if let Some(bars) = args.scroll_bars { rt.set_system_scroll_bars(bars); }
     // Only limits the app set: the canvas opens at any size, below the default minimum too.
     let limits = (app_options.min_size.or(spec.min_size).unwrap_or((0.0, 0.0)), app_options.max_size);
@@ -256,12 +257,12 @@ pub(crate) fn headless_configured<S: 'static>(mut app: crate::app::App<S>, args:
                 Kind::Menu(item) => crate::native_menu::fire(&shared, item).unwrap_or_else(|e| die(&format!("script menu: {e}"))),
                 Kind::PopupMenu(picked) => rt.resolve_popup(picked.as_deref()).unwrap_or_else(|e| die(&format!("script pop-up menu: {e}"))),
                 Kind::FileDialog(path) => rt.resolve_file_dialog(path.clone()).unwrap_or_else(|e| die(&format!("script file dialog: {e}"))),
-                Kind::Move => rt.pointer_move(x, y),
+                Kind::Move => rt.primary_move(x, y, e.t),
                 Kind::Down => {
                     last_down = (x, y);
-                    rt.pointer_down(x, y);
+                    rt.primary_down(x, y, e.t);
                 }
-                Kind::Up => rt.pointer_up(x, y),
+                Kind::Up => rt.primary_up(x, y, e.t),
                 Kind::SecondaryDown => { last_down = (x, y); rt.secondary_down(x, y); }
                 Kind::SecondaryUp => rt.secondary_up(x, y),
                 Kind::Key(k, false) => rt.key(k.clone()),

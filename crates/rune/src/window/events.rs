@@ -241,7 +241,7 @@ impl<S: 'static> Host<S> {
         // A finger presses through `WindowEvent::Touch`; the mouse events a system makes up
         // from it (Windows promotes touches) would press a second time.
         if matches!(event, WindowEvent::CursorMoved { .. } | WindowEvent::CursorLeft { .. } | WindowEvent::MouseInput { .. })
-            && (rt.touching() || touch_promoted()) { return; }
+            && ((rt.touching() && !rt.pointer_pans) || touch_promoted()) { return; }
         match event {
             WindowEvent::Moved(_) => {
                 // winit queues `ScaleFactorChanged` in `kCFRunLoopDefaultMode`, which waits
@@ -463,7 +463,7 @@ impl<S: 'static> Host<S> {
                 }
             }
             WindowEvent::CursorMoved { position, .. } => {
-                rt.pointer_move(position.x as f32 / scale, position.y as f32 / scale);
+                rt.primary_move(position.x as f32 / scale, position.y as f32 / scale, crate::window::input_time());
                 // AppKit needs the drag session started inside this mouse-dragged event.
                 if let Some(start) = rt.take_drag_out() {
                     let image = self.gpu.as_ref().filter(|_| start.item.drag_image().is_none()).and_then(|(gpu, renderer)|
@@ -497,7 +497,7 @@ impl<S: 'static> Host<S> {
                         (ElementState::Pressed, false) => {
                             #[cfg(target_os = "macos")]
                             rt.set_native_titlebar_band(mac::native_titlebar_band(&l.window));
-                            rt.pointer_down(x, y);
+                            rt.primary_down(x, y, crate::window::input_time());
                             rt.physical_input(crate::PhysicalInput::Modifiers(map_mods(self.mods)));
                             // AppKit needs the drag started inside this mouse-down.
                             match rt.take_titlebar_action() {
@@ -508,7 +508,7 @@ impl<S: 'static> Host<S> {
                                 None => {}
                             }
                         }
-                        (ElementState::Released, false) => rt.pointer_up(x, y),
+                        (ElementState::Released, false) => rt.primary_up(x, y, crate::window::input_time()),
                     }
                 }
                 if state == ElementState::Released { self.control_click = false; }

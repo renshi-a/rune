@@ -510,7 +510,7 @@ impl<S: 'static> Host<S> {
         let chrome = app.chrome;
         let (srgb_blend, font_smoothing) = (app.srgb_blend, app.font_smoothing);
         let modifier_keys = app.modifier_keys;
-        let tab_visits_controls = app.tab_visits_controls;
+        let (tab_visits_controls, pointer_pans) = (app.tab_visits_controls, app.pointer_pans);
         let fit_height = app.fit_content_height;
         let float_on_open = app.float_on_open;
         let (open_inactive, open_maximized) = (app.open_inactive, app.maximized);
@@ -540,6 +540,7 @@ impl<S: 'static> Host<S> {
         rt.set_system_reduced_motion(crate::platform::preferences::reduced_motion());
         rt.set_full_keyboard_access(crate::platform::preferences::full_keyboard_access());
         rt.set_tab_visits_controls(tab_visits_controls);
+        rt.set_pointer_pans(pointer_pans);
         crate::platform::accent::watch();
         rt.set_system_accent(crate::system_accent());
         crate::platform::scroll_bars::watch();
@@ -805,16 +806,20 @@ fn gesture_phase(phase: TouchPhase) -> crate::GesturePhase {
 
 /// Hands a winit touch (a finger, or a pen where the system reports it as one) to the runtime
 /// in window points, timed on a clock that starts with the first touch.
-pub(crate) fn touch<S: 'static>(rt: &mut crate::Runtime<S>, touch: &winit::event::Touch, scale: f32) {
+/// Seconds since the first input, the clock touches and `App::pointer_pans` presses share.
+pub(crate) fn input_time() -> f64 {
     static START: std::sync::OnceLock<crate::time::Instant> = std::sync::OnceLock::new();
+    START.get_or_init(crate::time::Instant::now).elapsed().as_secs_f64()
+}
+
+pub(crate) fn touch<S: 'static>(rt: &mut crate::Runtime<S>, touch: &winit::event::Touch, scale: f32) {
     let phase = match touch.phase {
         TouchPhase::Started => crate::TouchPhase::Started,
         TouchPhase::Moved => crate::TouchPhase::Moved,
         TouchPhase::Ended => crate::TouchPhase::Ended,
         TouchPhase::Cancelled => crate::TouchPhase::Cancelled,
     };
-    let time = START.get_or_init(crate::time::Instant::now).elapsed().as_secs_f64();
-    rt.touch(touch.id, phase, touch.location.x as f32 / scale, touch.location.y as f32 / scale, time);
+    rt.touch(touch.id, phase, touch.location.x as f32 / scale, touch.location.y as f32 / scale, input_time());
 }
 
 impl<S: 'static> Host<S> {

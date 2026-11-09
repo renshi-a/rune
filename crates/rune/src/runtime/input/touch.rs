@@ -9,6 +9,8 @@ use super::*;
 const TOUCH_SLOP: f32 = 8.0;
 /// A finger held this long (seconds) before lifting throws nothing.
 const FLING_HOLD: f64 = 0.1;
+/// The touch id a mouse presses with under `App::pointer_pans`.
+const MOUSE_FINGER: u64 = u64::MAX;
 
 /// A host's touch phase, as winit reports it.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -75,6 +77,12 @@ impl<S: 'static> Runtime<S> {
     fn touch_move(&mut self, id: u64, x: f32, y: f32, time: f64) {
         let Some(f) = self.touch.finger.as_ref().filter(|f| f.id == id) else { return };
         let (dx, dy) = (x - f.origin.0, y - f.origin.1);
+        // An element that drags (a brush on a canvas) hears every move from the first point;
+        // only a press that may yet become a pan waits out the slop.
+        if f.mode == Mode::Pending && dx.hypot(dy) <= TOUCH_SLOP && self.press_drags() {
+            self.pointer_move(x, y);
+            return;
+        }
         if f.mode == Mode::Pending && dx.hypot(dy) > TOUCH_SLOP {
             let (origin, scroll) = (f.origin, f.scroll);
             let (scroll, horizontal) = if self.press_drags() { (None, false) } else { self.touch_scroll_pan(origin.0, origin.1, dx.abs() > dy.abs(), scroll) };
@@ -106,8 +114,29 @@ impl<S: 'static> Runtime<S> {
         let (x, y) = if pan { f.origin } else { (x, y) };
         if f.mode == Mode::Drag { self.pointer_move(x, y); }
         self.pointer_up(x, y);
-        // No hover is left under a lifted finger.
-        self.pointer_leave();
+        // No hover is left under a lifted finger; a mouse (`App::pointer_pans`) stays put.
+        if !self.pointer_pans { self.pointer_leave(); }
+    }
+
+    /// The primary button went down at (x, y): with `App::pointer_pans` it is a finger (a drag
+    /// over a scroll viewport pans it), else a plain press. `time` in seconds on a steady clock.
+    pub fn primary_down(&mut self, x: f32, y: f32, time: f64) {
+        if self.pointer_pans { self.touch(MOUSE_FINGER, TouchPhase::Started, x, y, time) } else { self.pointer_down(x, y) }
+    }
+
+    /// The pointer moved to (x, y), the primary button down or not.
+    pub fn primary_move(&mut self, x: f32, y: f32, time: f64) {
+        if self.pointer_pans && self.touching() { self.touch(MOUSE_FINGER, TouchPhase::Moved, x, y, time) } else { self.pointer_move(x, y) }
+    }
+
+    /// The primary button came up at (x, y).
+    pub fn primary_up(&mut self, x: f32, y: f32, time: f64) {
+        if self.pointer_pans && self.touching() { self.touch(MOUSE_FINGER, TouchPhase::Ended, x, y, time) } else { self.pointer_up(x, y) }
+    }
+
+    /// `App::pointer_pans`: the mouse's primary button is a finger.
+    pub fn set_pointer_pans(&mut self, on: bool) {
+        self.pointer_pans = on;
     }
 
     /// Whether the held press is on an element that drags, so a finger drags it, not the page.

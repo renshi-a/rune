@@ -597,6 +597,8 @@ pub struct Runtime<S: 'static> {
     full_keyboard_access: bool,
     /// `App::tab_visits_controls`: Tab visits every control whatever `full_keyboard_access` says.
     tab_visits_controls: bool,
+    /// `App::pointer_pans`: the mouse's primary button presses and pans like a finger.
+    pub(crate) pointer_pans: bool,
     modal_stack: Vec<(String, Option<String>)>,
     /// Focus when the running commit began, before a new view's focus request applied: what a
     /// modal that opens in this commit returns focus to.
@@ -971,6 +973,7 @@ impl<S: 'static> Runtime<S> {
             modifier_keys: Default::default(),
             full_keyboard_access: true,
             tab_visits_controls: false,
+            pointer_pans: false,
             modal_stack: Vec::new(),
             focus_before_commit: None,
             last_focused: None,
