@@ -392,6 +392,15 @@ pub struct Gpu {
 /// parallel GPU tests on lavapipe), so Rune creates them one at a time.
 static GPU_INIT: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
+/// Set, devices are requested with the adapter's full limits instead of wgpu's defaults
+/// (mignon: the engine sizes its paper and particle buffers from `adapter.limits()`).
+static ADAPTER_LIMITS: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+/// Request every device from here on with its adapter's limits. Call before the first window.
+pub fn use_adapter_limits(on: bool) {
+    ADAPTER_LIMITS.store(on, std::sync::atomic::Ordering::Relaxed);
+}
+
 impl Gpu {
     /// Panics without a usable adapter or device; windows use `try_new`.
     pub fn new(instance: wgpu::Instance, surface: Option<&wgpu::Surface<'_>>) -> Gpu {
@@ -467,7 +476,9 @@ impl Gpu {
         // A compositor that asks for immediates (`Compositor::features`) gets all the adapter has.
         let max_immediate_size = if required_features.contains(wgpu::Features::IMMEDIATES) { adapter.limits().max_immediate_size } else { 0 };
         let adapter_limits = adapter.limits();
-        let required_limits = if adapter_limits.max_inter_stage_shader_variables < wgpu::Limits::default().max_inter_stage_shader_variables
+        let required_limits = if ADAPTER_LIMITS.load(std::sync::atomic::Ordering::Relaxed) {
+            wgpu::Limits { max_immediate_size, ..adapter_limits }
+        } else if adapter_limits.max_inter_stage_shader_variables < wgpu::Limits::default().max_inter_stage_shader_variables
             || adapter_limits.max_color_attachments < wgpu::Limits::default().max_color_attachments
             || adapter_limits.max_compute_workgroup_storage_size < wgpu::Limits::default().max_compute_workgroup_storage_size
         {

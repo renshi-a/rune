@@ -390,7 +390,7 @@ impl<S: 'static> Member for Window<S> {
         let mut enc = gpu.device.create_command_encoder(&Default::default());
         if let Some(c) = self.comp.as_mut() {
             let mut f = crate::compose::Frame {
-                device: &gpu.device, queue: &gpu.queue, encoder: &mut enc, target: view, format,
+                device: &gpu.device, queue: &gpu.queue, adapter: &gpu.adapter, encoder: &mut enc, target: view, format,
                 size: px, dt, update_ms, rt: &mut self.rt, ui: renderer,
             };
             c.render(&mut f);

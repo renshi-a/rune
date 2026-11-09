@@ -265,6 +265,7 @@ impl<S: 'static> Host<S> {
             let mut f = Frame {
                 device: &gpu.device,
                 queue: &gpu.queue,
+                adapter: &gpu.adapter,
                 encoder: &mut enc,
                 target,
                 format: target_format,

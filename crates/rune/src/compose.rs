@@ -65,6 +65,8 @@ pub trait Compositor<S: 'static>: 'static {
 pub struct Frame<'a, S: 'static> {
     pub device: &'a wgpu::Device,
     pub queue: &'a wgpu::Queue,
+    /// The adapter `device` was made on (mignon: the engine shares the GPU and reads its info and limits).
+    pub adapter: &'a wgpu::Adapter,
     pub encoder: &'a mut wgpu::CommandEncoder,
     /// The window surface or the offscreen target.
     pub target: &'a wgpu::TextureView,

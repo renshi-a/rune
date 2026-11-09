@@ -190,6 +190,7 @@ impl<S: 'static> LayerHost<S> {
             let mut f = Frame {
                 device: &self.gpu.device,
                 queue: &self.gpu.queue,
+                adapter: &self.gpu.adapter,
                 encoder: &mut encoder,
                 target: &target,
                 format,

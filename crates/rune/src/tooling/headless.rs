@@ -332,6 +332,7 @@ pub(crate) fn headless_configured<S: 'static>(mut app: crate::app::App<S>, args:
             let mut f = Frame {
                 device: &gpu.device,
                 queue: &gpu.queue,
+                adapter: &gpu.adapter,
                 encoder: &mut enc,
                 target: view,
                 format: target_format,

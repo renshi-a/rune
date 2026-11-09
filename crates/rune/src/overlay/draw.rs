@@ -253,7 +253,7 @@ impl<T: 'static> Overlay<T> {
         let runtime_animating = animating;
         let mut enc = gpu.device.create_command_encoder(&Default::default());
         animating |= render_frame(&mut Frame {
-            device: &gpu.device, queue: &gpu.queue, encoder: &mut enc,
+            device: &gpu.device, queue: &gpu.queue, adapter: &gpu.adapter, encoder: &mut enc,
             target: live.alpha.as_ref().map_or(&view, |a| &a.view), format: target_format,
             size: (live.config.width, live.config.height), dt, update_ms,
             rt: &mut self.rt, ui: renderer,
@@ -399,7 +399,7 @@ impl<T: 'static> Overlay<T> {
         });
         let mut enc = gpu.device.create_command_encoder(&Default::default());
         render_frame(&mut Frame {
-            device: &gpu.device, queue: &gpu.queue, encoder: &mut enc,
+            device: &gpu.device, queue: &gpu.queue, adapter: &gpu.adapter, encoder: &mut enc,
             target: &target.create_view(&Default::default()), format: renderer.format(), size,
             dt: 0.0, update_ms: 0.0, rt: &mut self.rt, ui: renderer,
         }, &mut self.compositor);
